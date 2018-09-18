@@ -1,5 +1,5 @@
 === WooCommerce Splits Tecnologia ===
-Contributors: splits, claudiosanches
+Contributors: splits
 Tags: woocommerce, splits, payment
 Requires at least: 4.0
 Tested up to: 4.9
