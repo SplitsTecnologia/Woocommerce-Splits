@@ -165,7 +165,7 @@ class WC_splits_API {
 			'free_installments' => $this->gateway->free_installments,
 		);
 
-
+	
 		$query = array(
 			'query' => 'query installments_values($gateway_token: ID!, $amount: Int!, $max_installments: Int, $free_installments: Int!, $smallest_installment: Int!) {installments_values(gateway_token: $gateway_token, amount: $amount, max_installments: $max_installments, free_installments: $free_installments, smallest_installment: $smallest_installment) { parcel value total }}',
 			'variables' => array (
@@ -173,10 +173,15 @@ class WC_splits_API {
 				'amount' => $amount * 100,
 				'max_installments' => $this->gateway->max_installment,
 				'free_installments' => $this->gateway->free_installments,
-				'smallest_installment' => $this->gateway->smallest_installment * 100
+				'smallest_installment' => ($this->gateway->max_installment == 1 ? 0 : $this->gateway->smallest_installment * 100)
 			)
 		);
-
+	
+	//	echo '<pre>';
+	//	print_r($this->gateway->max_installment);
+	//	print_r($query);
+	//	echo '</pre>';
+		
 		$headers = array( 
 			'x-gateway-token' => $this->gateway->api_key
 		);
@@ -223,7 +228,7 @@ class WC_splits_API {
 	public function generate_transaction_data( $order, $posted ) {
 
 		$query = array(
-			'query' => 'mutation create_sale_open($valor:Float!, $token_cartao: String, $plano_cobranca: PlanoCobrancaInput!) { create_sale_open( valor:$valor, token_cartao:$token_cartao, plano_cobranca:$plano_cobranca ) { status message } }',
+			'query' => 'mutation create_sale_open($valor:String!, $token_cartao: String, $plano_cobranca: PlanoCobrancaInput!) { create_sale_open( valor:$valor, token_cartao:$token_cartao, plano_cobranca:$plano_cobranca ) { status message } }',
 			'variables' => array (
 				'valor' => $order->total * 100,
 				'token_cartao' => $posted['splits_card_hash'],
@@ -233,12 +238,17 @@ class WC_splits_API {
 				)
 			)
 		);
+		
+		// print_r($query);
+		
 		$headers = array( 
 			'x-gateway-token' => $this->gateway->api_key
 		);
 		$response = $this->do_request( 'gateway', 'POST', $query, $headers);
 		$res = json_decode($response['body'], true);
 		
+		
+		// print_r($response);
 		
 		$data = array (
 			'transaction_id' => $order->id,
@@ -679,7 +689,7 @@ class WC_splits_API {
 				break;
 			case 'pending_review':
 				$transaction_id  = get_post_meta( $order->id, '_wc_splits_transaction_id', true );
-				$transaction_url = '<a href="https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
+				$transaction_url = '<a href="https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
 
 				/* translators: %s transaction details url */
 				$order->update_status( 'on-hold', __( 'Splits Tecnologia: You should manually analyze this transaction to continue payment flow, access %s to do it!', 'woocommerce-splits'  ), $transaction_url  );
@@ -691,7 +701,7 @@ class WC_splits_API {
 				break;
 			case 'paid' :
 				if ( ! in_array( $order->get_status(), array( 'processing', 'completed' ), true ) ) {
-					$order->add_order_note( __( 'Splits Tecnologia: Transação aprovada.', 'woocommerce-splits' ) );
+					$order->add_order_note( __( 'Splits Tecnologia: Transaction paid.', 'woocommerce-splits' ) );
 				}
 
 				// Changing the order for processing and reduces the stock.
@@ -706,7 +716,7 @@ class WC_splits_API {
 				$order->update_status( 'failed', __( 'Splits Tecnologia: The transaction was rejected by the card company or by fraud.', 'woocommerce-splits' ) );
 
 				$transaction_id  = get_post_meta( $order->id, '_wc_splits_transaction_id', true );
-				$transaction_url = '<a href="https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
+				$transaction_url = '<a href="https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
 
 				$this->send_email(
 					sprintf( esc_html__( 'The transaction for order %s was rejected by the card company or by fraud', 'woocommerce-splits' ), $order->get_order_number() ),
@@ -719,7 +729,7 @@ class WC_splits_API {
 				$order->update_status( 'refunded', __( 'Splits Tecnologia: The transaction was refunded/canceled.', 'woocommerce-splits' ) );
 
 				$transaction_id  = get_post_meta( $order->id, '_wc_splits_transaction_id', true );
-				$transaction_url = '<a href="https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://admin.spliits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
+				$transaction_url = '<a href="https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '">https://portal.splits.com.br/#/transactions/' . intval( $transaction_id ) . '</a>';
 
 				$this->send_email(
 					sprintf( esc_html__( 'The transaction for order %s refunded', 'woocommerce-splits' ), $order->get_order_number() ),
