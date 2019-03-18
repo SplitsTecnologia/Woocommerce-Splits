@@ -226,11 +226,16 @@ class WC_splits_API {
 	 * @return array            Transaction data.
 	 */
 	public function generate_transaction_data( $order, $posted ) {
+	
+		$installments = $this->get_installments( $order->get_total() );
+		$installment = json_decode($installments['body']);
+	
+		$value_installment = $installment->{'data'}->{'installments_values'}[$posted['splits_installments']-1];
 
 		$query = array(
 			'query' => 'mutation create_sale_open($valor:String!, $token_cartao: String, $plano_cobranca: PlanoCobrancaInput!) { create_sale_open( valor:$valor, token_cartao:$token_cartao, plano_cobranca:$plano_cobranca ) { status message } }',
 			'variables' => array (
-				'valor' => $order->total * 100,
+				'valor' => $value_installment->{'total'},
 				'token_cartao' => $posted['splits_card_hash'],
 				'plano_cobranca' => array (
 					'tipo' => 'MENSAL',
@@ -238,7 +243,6 @@ class WC_splits_API {
 				)
 			)
 		);
-		
 		// print_r($query);
 		
 		$headers = array( 
