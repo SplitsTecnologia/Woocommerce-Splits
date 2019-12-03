@@ -45,6 +45,21 @@ class WC_splits_Credit_Card_Gateway extends WC_Payment_Gateway {
 		$this->free_installments    = $this->get_option( 'free_installments', '1' );
 		$this->debug                = $this->get_option( 'debug' );
 
+		// Suporte Subscription
+		$this->supports = array( 
+			'products', 
+			'subscriptions',
+			'subscription_cancellation', 
+			'subscription_suspension', 
+			'subscription_reactivation',
+			'subscription_amount_changes',
+			'subscription_date_changes',
+			'subscription_payment_method_change',
+			'subscription_payment_method_change_customer',
+			'subscription_payment_method_change_admin',
+			'multiple_subscriptions',
+	   );
+
 		// Active logs.
 		if ( 'yes' === $this->debug ) {
 			$this->log = new WC_Logger();
